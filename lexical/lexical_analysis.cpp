@@ -1,14 +1,15 @@
-#include <stdio.h>
-#include <ctype.h>
+#include <iostream>
+#include <fstream>
+using namespace std;
 
 /* Global declarations for variables */
 int charClass;
 char lexeme [100];
-char nextChar;
+int nextChar;          /* nextChar must be int to hold EOF */
 int lexLen;
 int token;
 int nextToken;
-FILE *in_fp, *fopen;
+ifstream inputFile;
 
 /* Function declarations */
 void addChar();
@@ -33,28 +34,11 @@ int lex();
 #define LEFT_PAREN 26
 #define RIGHT_PAREN 27
 /* Assignment Operators */
-//#define ASSIGN_ADD_OP 27
-//#define ASSIGN_SUB_OP 28
-//#define ASSIGN_MUL_OP 29
-//#define ASSIGN_DIV_OP 30
-//#define ASSIGN_MOD_OP 31
-//#define ASSIGN_ADD_OP 32
+#define ASSIGN_ADD_OP 28
+#define ASSIGN_SUB_OP 29
+#define ASSIGN_MULT_OP 30
+#define ASSIGN_DIV_OP 31
 // assign -> [unsigned/signed] (byte| short | int | long ) <ident> (= | += | -= | *= | /= | %= ) <expression> ;
-
-
-
-
-int main () {
-   /* Open input file and process contents */
-   if ((in_fp = fopen("front.in", "r")) == NULL)
-   printf("ERROR - cannot open front.in \n");
-   else { 
-      getChar();
-      do {
-         lex();
-      } while (nextToken != EOF);
-   }
-}
 
 
 /* lookup - look up operators and paranthesis and return token */
@@ -88,6 +72,26 @@ int lookup(char ch) {
             addChar();
             nextToken = EXP_OP;
             break;
+        case '=':
+            addChar();
+            nextToken = ASSIGN_OP;
+            break;
+        case '+=':
+            addChar();
+            nextToken = ASSIGN_ADD_OP;
+            break;
+        case '-=':
+            addChar();
+            nextToken = ASSIGN_SUB_OP;
+            break;
+        case '*=':
+            addChar();
+            nextToken = ASSIGN_MULT_OP;
+            break;
+        case '/=':
+            addChar();
+            nextToken = ASSIGN_DIV_OP;
+            break;
         default:
             addChar();
             nextToken = EOF;
@@ -96,6 +100,7 @@ int lookup(char ch) {
     return nextToken;
 }
 
+
 /* addChar - a function to add nextChar to lexeme */
 void addChar() {
    if (lexLen <= 98) {
@@ -103,24 +108,33 @@ void addChar() {
       lexeme[lexLen] = 0;
    }
    else
-      printf("Error - lexeme is too long \n");
+      cout << "Error - lexeme is too long \n";
 }
 
 /* getChar - a function to get the next character of input 
 and determine its character class */
 
 void getChar() {
-   if ((nextChar = getc(in_fp)) = EOF){
-    if(isalpha(nextChar))
-      charClass = LETTER;
-    else if (isdigit(nextChar))
+
+    if(inputFile.eof()) {
+        charClass = EOF;
+        nextChar = EOF;
+        return;
+    }
+
+    nextChar = inputFile.get();
+    
+    if (isalpha(nextChar)) {
+        charClass = LETTER;
+    }
+    else if (isdigit(nextChar)){
         charClass = DIGIT;
-    else 
-      charClass = UNKNOWN;
-   }
-   else
-    charClass = EOF;
-   }
+    }
+    else {
+        charClass = UNKNOWN;
+    }
+}
+
 
    /* getNonBlank - a function to call getChar until it returns a non-blank character */
    void getNonBlank() {
@@ -171,8 +185,23 @@ int lex() {
              lexeme[3] = 0;
              break;
     } /* End of switch */
-    printf("Next token is: %d, Next lexeme is %s\n", nextToken, lexeme);
+    cout << "Next token is: " << nextToken << ", Next lexeme is " << lexeme << endl;
    return nextToken;
 } /* End of function lex */
 
+int main () {
+   /* Open input file and process contents */
+   inputFile.open("front.in");
 
+   if (!inputFile.is_open()) {
+      cout << "ERROR - cannot open front.in \n";
+      return 1;
+   }
+    getChar();
+    do {
+        lex();
+    } while (nextToken != EOF);
+
+   inputFile.close();
+   return 0;
+}
