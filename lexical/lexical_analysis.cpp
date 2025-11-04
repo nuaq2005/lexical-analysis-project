@@ -5,10 +5,11 @@ using namespace std;
 /* Global declarations for variables */
 int charClass;
 char lexeme [100];
-int nextChar;          /* nextChar must be int to hold EOF */
+int nextChar; /* nextChar must be int to hold EOF */
 int lexLen;
 int token;
 int nextToken;
+int step; /* track each assignment for token and lexeme */
 ifstream inputFile;
 
 /* Function declarations */
@@ -43,6 +44,7 @@ int lex();
 
 /* lookup - look up operators and paranthesis and return token */
 int lookup(char ch) {
+    int peek;
     switch (ch) {
         case '(': 
             addChar();
@@ -54,19 +56,47 @@ int lookup(char ch) {
             break;
         case '+':
             addChar();
-            nextToken = ADD_OP;
+            peek = inputFile.peek();
+            if (peek == '=') { 
+                getChar();
+                addChar();
+                nextToken = ASSIGN_ADD_OP;
+            } else {
+                nextToken = ADD_OP;
+            }
             break;
         case '-':
             addChar();
-            nextToken = SUB_OP;
+            peek = inputFile.peek();
+            if (peek == '=') {
+                getChar();
+                addChar();
+                nextToken = ASSIGN_SUB_OP;
+            } else {
+                nextToken = SUB_OP;
+            }
             break;
         case '*':
             addChar();
-            nextToken = MULT_OP;
+            peek = inputFile.peek();
+            if (peek == '=') {
+                getChar();
+                addChar();
+                nextToken = ASSIGN_MULT_OP;
+            } else {
+                nextToken = MULT_OP;
+            }
             break;
         case '/':
             addChar();
-            nextToken = DIV_OP;
+            peek = inputFile.peek();
+            if (peek == '=') {
+                getChar();
+                addChar();
+                nextToken = ASSIGN_DIV_OP;
+            } else {
+                nextToken = DIV_OP;
+            }
             break;
         case '^':
             addChar();
@@ -75,22 +105,6 @@ int lookup(char ch) {
         case '=':
             addChar();
             nextToken = ASSIGN_OP;
-            break;
-        case '+=':
-            addChar();
-            nextToken = ASSIGN_ADD_OP;
-            break;
-        case '-=':
-            addChar();
-            nextToken = ASSIGN_SUB_OP;
-            break;
-        case '*=':
-            addChar();
-            nextToken = ASSIGN_MULT_OP;
-            break;
-        case '/=':
-            addChar();
-            nextToken = ASSIGN_DIV_OP;
             break;
         default:
             addChar();
@@ -123,6 +137,10 @@ void getChar() {
     }
 
     nextChar = inputFile.get();
+
+    if (nextChar == '\n') {
+        step = 1; //reset step count for new expression 
+    }
     
     if (isalpha(nextChar)) {
         charClass = LETTER;
@@ -185,7 +203,7 @@ int lex() {
              lexeme[3] = 0;
              break;
     } /* End of switch */
-    cout << "Next token is: " << nextToken << ", Next lexeme is " << lexeme << endl;
+    cout << step << ". Next token is: " << nextToken << ", Next lexeme is " << lexeme << endl;
    return nextToken;
 } /* End of function lex */
 
@@ -199,6 +217,7 @@ int main () {
    }
     getChar();
     do {
+        step++;
         lex();
     } while (nextToken != EOF);
 
