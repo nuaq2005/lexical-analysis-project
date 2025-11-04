@@ -1,3 +1,4 @@
+(sum + 47) / total
 A = A * (B + (C * A))
 A = B * (C * (A + B))
 A = A * (B + (C * A))
