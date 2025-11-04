@@ -5,6 +5,7 @@ using namespace std;
 /* Global declarations for variables */
 int charClass;
 char lexeme [100];
+char reservedwords[100];
 int nextChar; /* nextChar must be int to hold EOF */
 int lexLen;
 int token;
@@ -45,6 +46,13 @@ void assign();
 #define ASSIGN_SUB_OP 29
 #define ASSIGN_MULT_OP 30
 #define ASSIGN_DIV_OP 31
+/* For assign */
+#define UNSIGNED_KEY 40
+#define SIGNED_KEY 41
+#define BYTE_KEY 42
+#define SHORT_KEY 43
+#define INT_KEY 44
+#define LONG_KEY 45
 
 
 
@@ -143,17 +151,13 @@ void getChar() {
     }
 
     nextChar = inputFile.get();
-     if (nextChar == '\n') {
-        step = 0;
-        return;
-    }
-    
+
     if (isalpha(nextChar)) {
         charClass = LETTER;
     }
     else if (isdigit(nextChar)){
         charClass = DIGIT;
-    }
+    } 
     else {
         charClass = UNKNOWN;
     }
@@ -164,6 +168,17 @@ void getChar() {
    void getNonBlank() {
     while (isspace(nextChar))
       getChar();
+    }
+
+    bool isKeyWord(const char* str, const char* keyword) {
+        int i = 0;
+        while (str[i] != '\0' && keyword[i] != '\0') {
+            if (str[i] != keyword[i]) {
+                return false;
+            }
+            i++;
+        }
+        return str[i] == '\0' && keyword[i] == '\0';
     }
 
 /* lex - a simple lexical analyzer for arithmetic expressions */
@@ -180,7 +195,21 @@ int lex() {
             addChar();
             getChar();
          } //if first lex is a letter, it is treated as identifier, loop breaks once a non-letter/digit is found
-         nextToken = IDENT;
+         if (isKeyWord(lexeme, "unsigned")){
+            nextToken = UNSIGNED_KEY;
+         } else if (isKeyWord(lexeme, "signed")){
+            nextToken = SIGNED_KEY;
+         } else if (isKeyWord(lexeme, "byte")){
+            nextToken = BYTE_KEY;
+         } else if (isKeyWord(lexeme, "short")){
+            nextToken = SHORT_KEY;
+         } else if (isKeyWord(lexeme, "int")){
+            nextToken = INT_KEY;
+         } else if (isKeyWord(lexeme, "long")){
+            nextToken = LONG_KEY;
+         } else {
+            nextToken = IDENT;
+         }
          break;
 
         /* Parse integer literals */
@@ -197,7 +226,7 @@ int lex() {
         /* Parentheses and operators */
         case UNKNOWN: //if char is not letter or digit, it is either operator, parenthesis or unknown
              lookup(nextChar);
-             getChar();
+             if (nextToken != EOF) getChar(); //changed
              break;
 
         /* EOF */
@@ -209,15 +238,14 @@ int lex() {
              lexeme[3] = 0;
              break;
     } /* End of switch */
-    step++;
-    cout << step << ". Next token is: " << nextToken << ", Next lexeme is " << lexeme << endl;
+    cout << step++ << ". Next token is: " << nextToken << ", Next lexeme is " << lexeme << endl;
    return nextToken;
 } /* End of function lex */
 
 /*Syntax Analyzer*/
 
 void exp(){
-    cout << step << ". Enter <exp> \n";
+    cout << step++ << ". Enter <exp> \n";
 
     //determine which path to take
     if (nextToken == IDENT || nextToken == INT_LIT){
@@ -234,15 +262,13 @@ void exp(){
     } else {
         cout << "Syntax Error \n";
     }
-    step++; 
-    cout << step << ". Exit <exp> \n";
+    cout << step++ << ". Exit <exp> \n";
 }
 
 void factor() {
-    cout << step << ". Enter <factor> \n";
+    cout << step++ << ". Enter <factor> \n";
 
     //first we must have a factor
-    step++;
     exp();
 
     //then we can have 0 or more (^) factor
@@ -250,15 +276,14 @@ void factor() {
         lex(); //get the operator
         exp(); //get the next factor
     }
-    step++;
-    cout << step << ". Exit <factor> \n";
+
+    cout << step++ << ". Exit <factor> \n";
 }
 
 void term (){
-    cout << step << ". Enter <term> \n";
+    cout << step++ << ". Enter <term> \n";
 
     //first we must have a factor
-    step++;
     factor();
 
     //then we can have 0 or more (* | /) factor
@@ -266,8 +291,7 @@ void term (){
         lex(); //get the operator
         factor(); //get the next factor
     }
-    step++; 
-    cout << step << ". Exit <term> \n";
+    cout << step++ << ". Exit <term> \n";
 }
 
 /* expr
@@ -276,10 +300,9 @@ void term (){
  */
 
 void expr() {
-    cout << step << ". Enter <expr> \n";
+    cout << step++ << ". Enter <expr> \n";
 
     //print first term
-    step++; 
     term();
 
     //then we can have 0 or more (+ | - | *) term
@@ -287,13 +310,24 @@ void expr() {
         lex(); //get the operator
         term(); //get the next term
     }
-    step++;
-    cout << step << ". Exit <expr> \n";
+    cout << step++ << ". Exit <expr> \n";
 }
 
-// assign -> [unsigned/signed] (byte| short | int | long ) <ident> (= | += | -= | *= | /= | %= ) <expression> ;
+// assign -> [unsigned/signed] (byte| short | int | long ) <ident> (= | += | -= | *= | /= ) <expression> ;
+
 void assign() {
-    cout << step << ". Enter <assign> \n"; //every line begins here
+    cout << step++ << ". Enter <assign> \n"; //every line begins here
+
+    // Optional: unsigned or signed
+    if (nextToken == UNSIGNED_KEY || nextToken == SIGNED_KEY) {
+        lex(); // consume the unsigned/signed keyword
+    }
+
+    // Optional: byte, short, int, or long
+    if (nextToken == BYTE_KEY || nextToken == SHORT_KEY || 
+        nextToken == INT_KEY || nextToken == LONG_KEY) {
+        lex(); // consume the type keyword
+    }
 
     //first lexeme must be identifier
     if(nextToken == IDENT){ 
@@ -310,19 +344,9 @@ void assign() {
     }
 
     //third lexeme must be expression
-    step++;
     expr(); //we enter expression, which takes us through the terms/factors/operations
 
-    cout << step << ". Exit <assign> \n";
-}
-
-void filltempLexeme(char* source, char* destination) {
-    int i = 0;
-    while (source[i]) {
-        destination[i] = source[i];
-        i++;
-    }
-    destination[i] = '\0';
+    cout << step++ << ". Exit <assign> \n";
 }
 
 int main () {
@@ -332,42 +356,14 @@ int main () {
    if (!inputFile.is_open()) {
       cout << "ERROR - cannot open front.in \n";
       return 1;
-   }
-   //this is to store the current step and lexeme when deciding between assign() and expr()
-   int tempStep = step;
-   char tempLexeme[100];
-   
-   getChar();
-   lex();
-
-    while (nextToken != EOF) {
-        if (nextToken == IDENT) {
-        int i = 0;
-        while(lexeme[i]){
-            tempLexeme[i] = lexeme[i];
-            i++;
-        }   
-        tempLexeme[i] = '\0';
-
-        lex();
-        if (nextToken == ASSIGN_OP || nextToken == ASSIGN_ADD_OP || nextToken == ASSIGN_SUB_OP || nextToken == ASSIGN_MULT_OP || nextToken == ASSIGN_DIV_OP) {
-            //restore lexeme and step for assign()
-            filltempLexeme(tempLexeme, lexeme);
-            step = tempStep;
-            nextToken = IDENT; //reset nextToken to IDENT for assign()
-            assign();
-        } else {
-            filltempLexeme(tempLexeme, lexeme);
-            step = tempStep;
-            nextToken = IDENT; //reset nextToken to IDENT for expr()
-            expr();
-        }
-        } else {
-            expr();
-        }
-        lex();
-   }
-
+   } else {
+    getChar();
+    lex();
+    do{
+        assign();
+        cout << '\n';
+    } while (nextToken != EOF);
+}
    inputFile.close();
    return 0;
 }
