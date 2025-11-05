@@ -39,13 +39,15 @@ void assign();
 #define MULT_OP 23
 #define DIV_OP 24
 #define EXP_OP 25
-#define LEFT_PAREN 26
-#define RIGHT_PAREN 27
+#define MOD_OP  26
+#define LEFT_PAREN 27
+#define RIGHT_PAREN 28
 /* Assignment Operators */
-#define ASSIGN_ADD_OP 28
-#define ASSIGN_SUB_OP 29
-#define ASSIGN_MULT_OP 30
-#define ASSIGN_DIV_OP 31
+#define ASSIGN_ADD_OP 29
+#define ASSIGN_SUB_OP 30
+#define ASSIGN_MULT_OP 31
+#define ASSIGN_DIV_OP 32
+#define ASSIGN_MOD_OP 33
 /* For assign */
 #define UNSIGNED_KEY 40
 #define SIGNED_KEY 41
@@ -70,7 +72,7 @@ int lookup(char ch) {
             break;
         case '+':
             addChar();
-            peek = inputFile.peek();
+            peek = inputFile.peek(); //looks at next char and if it is '=' it concatenates it with the operator and assigns it accordingly
             if (peek == '=') { 
                 getChar();
                 addChar();
@@ -110,6 +112,17 @@ int lookup(char ch) {
                 nextToken = ASSIGN_DIV_OP;
             } else {
                 nextToken = DIV_OP;
+            }
+            break;
+        case '%':
+            addChar();
+            peek = inputFile.peek();
+            if (peek == '=') {
+                getChar();
+                addChar();
+                nextToken = ASSIGN_MOD_OP;
+            } else {
+                nextToken = MOD_OP;
             }
             break;
         case '^':
@@ -172,13 +185,13 @@ void getChar() {
 
     bool isKeyWord(const char* str, const char* keyword) {
         int i = 0;
-        while (str[i] != '\0' && keyword[i] != '\0') {
-            if (str[i] != keyword[i]) {
+        while (str[i] != '\0' && keyword[i] != '\0') { //iterates through lexeme and keyword from lex function
+            if (str[i] != keyword[i]) { //if any character does not match, it is not a keyword
                 return false;
             }
             i++;
         }
-        return str[i] == '\0' && keyword[i] == '\0';
+        return str[i] == '\0' && keyword[i] == '\0'; //returns true only if both strings end at the same time
     }
 
 /* lex - a simple lexical analyzer for arithmetic expressions */
@@ -194,9 +207,10 @@ int lex() {
          while (charClass == LETTER || charClass == DIGIT) {
             addChar();
             getChar();
-         } //if first lex is a letter, it is treated as identifier, loop breaks once a non-letter/digit is found
+         } //loops through letters and digits to form the full lexeme
+         //if first lex is a letter, it goes through if statements to see if it is a keyword, if not it is treated as identifier
          if (isKeyWord(lexeme, "unsigned")){
-            nextToken = UNSIGNED_KEY;
+            nextToken = UNSIGNED_KEY; 
          } else if (isKeyWord(lexeme, "signed")){
             nextToken = SIGNED_KEY;
          } else if (isKeyWord(lexeme, "byte")){
@@ -268,10 +282,10 @@ void exp(){
 void factor() {
     cout << step++ << ". Enter <factor> \n";
 
-    //first we must have a factor
+    //first we must have an exp
     exp();
 
-    //then we can have 0 or more (^) factor
+    //then we can have 0 or more (^) exp
     while (nextToken == EXP_OP) {
         lex(); //get the operator
         exp(); //get the next factor
@@ -287,7 +301,7 @@ void term (){
     factor();
 
     //then we can have 0 or more (* | /) factor
-    while (nextToken == MULT_OP || nextToken == DIV_OP) {
+    while (nextToken == MULT_OP || nextToken == DIV_OP || nextToken == MOD_OP) {
         lex(); //get the operator
         factor(); //get the next factor
     }
@@ -336,7 +350,7 @@ void assign() {
         cout << "Syntax Error \n";
     }
 
-    //second lexeme must be identifier
+    //second lexeme must be operator
     if(nextToken == ASSIGN_OP || nextToken == ASSIGN_ADD_OP || nextToken == ASSIGN_SUB_OP || nextToken == ASSIGN_MULT_OP || nextToken == ASSIGN_DIV_OP){
         lex();
     } else {
